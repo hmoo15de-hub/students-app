@@ -1,4 +1,30 @@
 # app.py
+import streamlit as st
+import re
+import os
+
+def normalize_email(email):
+    """تحويل الإيميل إلى اسم ملف آمن"""
+    email = email.lower().strip()
+    email = re.sub(r'[^a-zA-Z0-9]', '_', email)
+    return f"db_{email}.db"
+
+# شاشة تسجيل الدخول
+if "user_email" not in st.session_state:
+    st.title("تسجيل الدخول")
+    email = st.text_input("أدخل بريدك الإلكتروني")
+    if st.button("دخول"):
+        if "@" not in email or "." not in email:
+            st.error("الرجاء إدخال بريد إلكتروني صحيح")
+        else:
+            st.session_state["user_email"] = email
+            st.session_state["user_db"] = normalize_email(email)
+            st.rerun()
+    st.stop()
+
+USER_DB = st.session_state["user_db"]
+DB = USER_DB  
+ 
 import sqlite3
 import streamlit as st
 import pandas as pd
@@ -11,7 +37,6 @@ import os
 
 DB = "students_web.db"
 
-# ---------- DB helpers and migration ----------
 def get_conn():
     return sqlite3.connect(DB, check_same_thread=False)
 
