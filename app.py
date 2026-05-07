@@ -22,11 +22,11 @@ if "user_email" not in st.session_state:
             st.rerun()
     st.stop()
 
+# هنا نحدد قاعدة بيانات هذا المستخدم فقط
 USER_DB = st.session_state["user_db"]
 DB = USER_DB  
- 
+
 import sqlite3
-import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -34,8 +34,6 @@ from io import BytesIO
 from datetime import datetime
 import time
 import os
-
-DB = "students_web.db"
 
 def get_conn():
     return sqlite3.connect(DB, check_same_thread=False)
@@ -150,7 +148,6 @@ def update_student_info(old_uni, new_name, new_uni):
     try:
         with get_conn() as conn:
             cur = conn.cursor()
-    
             cur.execute("UPDATE students SET name=?, uni=? WHERE uni=?", (new_name, new_uni, old_uni))
             conn.commit()
         return True, None
@@ -180,7 +177,6 @@ def hard_delete_student(uni):
         cur = conn.cursor()
         cur.execute("DELETE FROM students WHERE uni = ?", (uni,))
         conn.commit()
-
 
 def generate_pdf(students_df):
     buffer = BytesIO()
@@ -227,13 +223,10 @@ def generate_pdf(students_df):
     buffer.seek(0)
     return buffer
 
-
 st.set_page_config(page_title="سجل الطلاب", layout="wide")
 st.title("سجل الطلاب")
 
-
 ensure_db_and_migrate()
-
 
 if "_db_mtime" not in st.session_state:
     try:
@@ -247,19 +240,15 @@ try:
 except Exception:
     current_mtime = st.session_state.get("_db_mtime", 0.0)
 
-
 if current_mtime != st.session_state.get("_db_mtime", 0.0):
     st.session_state["_db_mtime"] = current_mtime
-    
     try:
         st.experimental_rerun()
     except Exception:
-        
         try:
             st.experimental_set_query_params(_refresh=int(time.time()))
         except Exception:
             pass
-
 
 with st.sidebar:
     st.header("Add student (with optional scores)")
@@ -278,7 +267,6 @@ with st.sidebar:
             ok, err = add_student(name.strip(), uni.strip(), year_val, mid_val, final_val)
             if ok:
                 st.success("Student added")
-                
                 try:
                     st.session_state["_db_mtime"] = os.path.getmtime(DB)
                 except Exception:
@@ -289,20 +277,16 @@ with st.sidebar:
         else:
             st.error("Enter name and university number")
 
-
 st.subheader("Students list")
 df = list_students()
-
 
 display_uni_label = "University number"
 df_display = df.rename(columns={"uni": display_uni_label})
 st.dataframe(df_display, use_container_width=True)
 
-
 if not df_display.empty:
     csv = df_display.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", data=csv, file_name="students.csv", mime="text/csv")
-
 
 st.markdown("### Select student to edit scores or manage record")
 students = df[['uni','name']].fillna('').astype(str)
@@ -313,7 +297,6 @@ if selected_opt:
     selected_uni = selected_opt.split(" — ")[0]
     st.session_state['selected_uni'] = selected_uni
 
-
 if 'selected_uni' in st.session_state:
     uni = st.session_state['selected_uni']
     student_row = df[df['uni'] == uni]
@@ -321,7 +304,6 @@ if 'selected_uni' in st.session_state:
         student_row = student_row.iloc[0]
         st.markdown(f"**Selected:** {student_row['name']} ({student_row['uni']})")
 
-        
         st.markdown("#### Edit student info")
         new_name = st.text_input("Edit name", value=student_row['name'], key=f"edit_name_{uni}")
         new_uni = st.text_input("Edit university number", value=student_row['uni'], key=f"edit_uni_{uni}")
@@ -332,18 +314,15 @@ if 'selected_uni' in st.session_state:
                 ok, err = update_student_info(uni, new_name.strip(), new_uni.strip())
                 if ok:
                     st.success("Student info updated")
-                    
                     try:
                         st.session_state["_db_mtime"] = os.path.getmtime(DB)
                     except Exception:
                         pass
-                    
                     st.session_state['selected_uni'] = new_uni.strip()
                     safe_rerun()
                 else:
                     st.error(err or "Failed to update student info")
 
-        
         st.markdown("#### Delete student")
         if 'confirm_delete' not in st.session_state:
             st.session_state['confirm_delete'] = None
@@ -356,7 +335,6 @@ if 'selected_uni' in st.session_state:
                 if st.button("Confirm delete", key=f"confirm_del_{uni}"):
                     hard_delete_student(uni)
                     st.success("Student permanently deleted")
-                    
                     try:
                         st.session_state["_db_mtime"] = os.path.getmtime(DB)
                     except Exception:
@@ -371,7 +349,7 @@ if 'selected_uni' in st.session_state:
                     st.info("Delete cancelled")
 
         st.markdown("---")
-        
+
         st.markdown("#### Edit scores")
         y_val = st.number_input("Year work (points)", value=0.0 if pd.isna(student_row['year']) else float(student_row['year']),
                                 min_value=0.0, max_value=float(DEFAULT_YEAR_MAX), step=0.5, key=f"y_val_{uni}")
@@ -392,7 +370,6 @@ if 'selected_uni' in st.session_state:
                         letter = percent_to_letter(pct)
                         update_grades(uni, y_val, m_val, f_val, pct, letter)
                         st.success(f"Saved — Percent: {pct}% — Grade: {letter}")
-                        
                         try:
                             st.session_state["_db_mtime"] = os.path.getmtime(DB)
                         except Exception:
@@ -411,7 +388,6 @@ if 'selected_uni' in st.session_state:
         st.warning("Selected student not found")
 else:
     st.info("Select a student from the dropdown to edit, delete, or change scores")
-
 
 st.markdown("---")
 st.header("Export")
