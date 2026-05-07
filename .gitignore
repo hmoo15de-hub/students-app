@@ -1,0 +1,14 @@
+# Ignore database files
+students_web.db
+students_web.db.bak
+*.db
+
+# Ignore virtual environment
+.venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore VS Code settings (اختياري)
+.vscode/
