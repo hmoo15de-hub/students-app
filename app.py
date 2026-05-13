@@ -8,8 +8,38 @@ from reportlab.pdfgen import canvas
 from io import BytesIO
 from datetime import datetime
 import time
+from streamlit_cookies_manager import EncryptedCookieManager
 
 st.set_page_config(page_title="Student Term System", layout="wide")
+
+# -------------------- COOKIES SYSTEM --------------------
+
+cookies = EncryptedCookieManager(
+    prefix="student_app_",
+    password="my-secret-password-123"   # غيّرها لو تبغى
+)
+
+if not cookies.ready():
+    st.stop()
+
+def save_login(email):
+    cookies["logged_in"] = "yes"
+    cookies["email"] = email
+    cookies.save()
+
+def load_login():
+    if cookies.get("logged_in") == "yes":
+        return cookies.get("email")
+    return None
+
+def logout():
+    cookies["logged_in"] = "no"
+    cookies["email"] = ""
+    cookies.save()
+    st.session_state.clear()
+    st.rerun()
+
+# -------------------- CSS --------------------
 
 CUSTOM_CSS = """
 <style>
@@ -49,23 +79,7 @@ CUSTOM_CSS = """
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-AUTH_FILE = "auth_user.txt"
-
-def save_login(email):
-    with open(AUTH_FILE, "w") as f:
-        f.write(email)
-
-def load_login():
-    if os.path.exists(AUTH_FILE):
-        with open(AUTH_FILE, "r") as f:
-            return f.read().strip()
-    return None
-
-def logout():
-    if os.path.exists(AUTH_FILE):
-        os.remove(AUTH_FILE)
-    st.session_state.clear()
-    st.rerun()
+# -------------------- LOGIN SYSTEM --------------------
 
 def normalize_email(email):
     email = email.lower().strip()
@@ -89,6 +103,8 @@ else:
             st.session_state["user_db"] = normalize_email(email)
             st.rerun()
     st.stop()
+
+# -------------------- DATABASE --------------------
 
 DB = st.session_state["user_db"]
 
@@ -378,6 +394,8 @@ def safe_rerun():
             st.experimental_set_query_params(_refresh=int(time.time()))
         except:
             pass
+
+# -------------------- UI --------------------
 
 ensure_db_and_migrate()
 subject_names = get_subject_names()
